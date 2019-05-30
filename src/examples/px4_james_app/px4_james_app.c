@@ -25,20 +25,20 @@ __EXPORT int px4_james_app_main(int argc, char *argv[]);
 
 int px4_james_app_main(int argc, char *argv[])
 {
-    PX4_INFO("Hello Sky, this is James, trying to read sensor data!");
+    PX4_INFO("Hello Sky, this is J, trying to read sensor data!");
     /* subscribe to sensor_combined topic */
-    int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
+    int snsor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
     /* limit the update rate to 5 Hz */
-    orb_set_interval(sensor_sub_fd, 200);
+    orb_set_interval(snsor_sub_fd, 200);
 
     /* advertise attitude topic */
     struct vehicle_attitude_s att;
     memset(&att, 0, sizeof(att));
-    orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
+    orb_advert_t att_pubb = orb_advertise(ORB_ID(vehicle_attitude), &att);
 
     /* one could wait for multiple topics with this technique, just using one here */
     px4_pollfd_struct_t fds[] = {
-        { .fd = sensor_sub_fd,   .events = POLLIN },
+        { .fd = snsor_sub_fd,   .events = POLLIN },
         /* there could be more file descriptors here, in the form like:
          * { .fd = other_sub_fd,   .events = POLLIN },
          */
@@ -46,7 +46,7 @@ int px4_james_app_main(int argc, char *argv[])
 
     int error_counter = 0;
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 3; i++) {
         /* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
         int poll_ret = px4_poll(fds, 1, 1000);
 
@@ -70,11 +70,15 @@ int px4_james_app_main(int argc, char *argv[])
                 /* obtained data for the first file descriptor */
                 struct sensor_combined_s raw;
                 /* copy sensors raw data into local buffer */
-                orb_copy(ORB_ID(sensor_combined), sensor_sub_fd, &raw);
-                PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
+                orb_copy(ORB_ID(sensor_combined), snsor_sub_fd, &raw);
+                PX4_INFO ("Accelerometer:\t%8.4f \t%8.4f\t%8.4f",
                      (double)raw.accelerometer_m_s2[0],
                      (double)raw.accelerometer_m_s2[1],
                      (double)raw.accelerometer_m_s2[2]);
+		PX4_INFO("Gyro:\t%8.4f \t%8.4f\t%8.4f",
+                     (double)raw.gyro_rad[0],
+                     (double)raw.gyro_rad[1],
+                     (double)raw.gyro_rad[2]);
 
                 /* set att and publish this information for other apps
                  the following does not have any meaning, it's just an example
@@ -83,7 +87,7 @@ int px4_james_app_main(int argc, char *argv[])
                 att.q[1] = raw.accelerometer_m_s2[1];
                 att.q[2] = raw.accelerometer_m_s2[2];
 
-                orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
+                orb_publish(ORB_ID(vehicle_attitude), att_pubb, &att);
             }
 
             /* there could be more file descriptors here, in the form like:
